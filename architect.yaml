@@ -1,0 +1,165 @@
+# architect.yaml - Microservice Factory Configuration
+# This file defines your microservices architecture
+
+project_name: "ecommerce-platform"
+version: "1.0.0"
+
+# Global settings
+global:
+  jwt_secret: "your-super-secret-jwt-key-change-in-production"
+  kafka_topics:
+    - "user-events"
+    - "order-events"
+    - "product-events"
+    - "microservice-events"
+
+# Define your microservices
+services:
+  # User Management Service
+  user:
+    language: dotnet          # dotnet, java, nodejs
+    database: postgresql      # postgresql, mongodb, sqlserver
+    architecture: cqrs        # cqrs, event-driven, n-tier
+    port: 5001
+    entities:
+      User:
+        username: string
+        email: string
+        password: hashed-string
+        firstName: string
+        lastName: string
+        isActive: bool
+        lastLogin: datetime
+      Profile:
+        userId: string
+        bio: string
+        avatar: string
+        birthDate: datetime
+    events:
+      - UserRegistered
+      - UserLoggedIn
+      - UserUpdated
+      - UserDeleted
+
+  # Product Catalog Service  
+  product:
+    language: java
+    database: postgresql
+    architecture: cqrs
+    port: 8082
+    entities:
+      Product:
+        name: string
+        description: string
+        price: float
+        stock: int
+        category: string
+        isActive: bool
+        sku: string
+      Category:
+        name: string
+        description: string
+        parentId: string
+        isActive: bool
+    events:
+      - ProductCreated
+      - ProductUpdated
+      - ProductDeleted
+      - StockUpdated
+
+  # Order Management Service
+  order:
+    language: nodejs
+    database: mongodb
+    architecture: event-driven
+    port: 3003
+    entities:
+      Order:
+        userId: string
+        status: string
+        totalAmount: float
+        orderDate: datetime
+        shippingAddress: string
+      OrderItem:
+        orderId: string
+        productId: string
+        quantity: int
+        price: float
+        productName: string
+    events:
+      - OrderCreated
+      - OrderUpdated
+      - OrderCompleted
+      - OrderCancelled
+
+  # Notification Service
+  notification:
+    language: nodejs
+    database: mongodb
+    architecture: event-driven
+    port: 3004
+    entities:
+      Notification:
+        userId: string
+        title: string
+        message: string
+        type: string
+        isRead: bool
+        createdAt: datetime
+      NotificationTemplate:
+        name: string
+        subject: string
+        body: string
+        type: string
+    events:
+      - NotificationSent
+      - NotificationRead
+
+# Infrastructure configuration
+infrastructure:
+  api_gateway:
+    port: 8080
+    rate_limit:
+      window_ms: 900000  # 15 minutes
+      max_requests: 100
+    cors:
+      enabled: true
+      origins: ["http://localhost:3000", "http://localhost:3001"]
+  
+  databases:
+    postgresql:
+      host: "localhost"
+      port: 5432
+      username: "postgres"
+      password: "password"
+    
+    mongodb:
+      host: "localhost"
+      port: 27017
+      
+  kafka:
+    brokers: ["localhost:9092"]
+    consumer_groups:
+      - user-service-group
+      - product-service-group
+      - order-service-group
+      - notification-service-group
+
+# Development settings
+development:
+  auto_migrations: true
+  seed_data: true
+  debug_mode: true
+  hot_reload: true
+
+# Docker settings
+docker:
+  network_name: "microservices-network"
+  restart_policy: "unless-stopped"
+  
+# Monitoring & Logging (future enhancement)
+observability:
+  health_checks: true
+  metrics: true
+  tracing: false
+  logging_level: "info"
